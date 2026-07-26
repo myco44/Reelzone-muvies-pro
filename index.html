@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard - Movie Library</title>
+<style>
+  :root{
+    --bg:#0d0f16; --surface:#171a24; --surface2:#1f2330;
+    --gold:#e8b93c; --gold-dim:#8a6f22;
+    --ok:#4caf6d; --wait:#d9534f; --soon:#4a8fd9;
+    --text:#f2f0e8; --muted:#8a8f9c; --rule:#2b3040;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:Georgia,serif;min-height:100vh;}
+  .wrap{max-width:640px;margin:0 auto;padding-bottom:60px;}
+  header{padding:24px 20px 16px;text-align:center;border-bottom:2px solid var(--rule);}
+  h1{font-family:'Impact','Arial Black',sans-serif;letter-spacing:2px;color:var(--gold);
+     text-transform:uppercase;font-size:22px;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:12px;letter-spacing:1px;}
+  main{padding:20px;}
+  .lock{padding:60px 20px;text-align:center;}
+  .lock p{color:var(--muted);font-size:13px;margin-bottom:16px;}
+  input,textarea,select{
+    width:100%;padding:13px;background:var(--surface);border:1px solid var(--rule);
+    color:var(--text);border-radius:8px;font-size:15px;font-family:Georgia,serif;margin-bottom:10px;
+  }
+  textarea{resize:vertical;min-height:70px;}
+  input::placeholder,textarea::placeholder{color:var(--muted);}
+  .btn{width:100%;padding:13px;background:var(--gold);color:#20180a;border:none;border-radius:8px;
+       font-weight:bold;font-size:14px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;margin-top:4px;}
+  .btn.secondary{background:transparent;color:var(--gold);border:1px solid var(--gold-dim);}
+  .btn.danger{background:transparent;color:var(--wait);border:1px solid var(--wait);}
+  .btn.small{width:auto;padding:8px 14px;font-size:11px;}
+  .tabs{display:flex;border:1px solid var(--rule);border-radius:10px;overflow:hidden;margin-bottom:20px;flex-wrap:wrap;}
+  .tabs button{flex:1;min-width:80px;padding:10px 4px;background:var(--surface);color:var(--muted);
+               border:none;font-size:11px;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;font-family:inherit;}
+  .tabs button.active{background:var(--gold);color:#20180a;font-weight:bold;}
+  .section{display:none;}
+  .section.active{display:block;}
+  .card{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .card-title{font-size:16px;font-weight:bold;}
+  .card-meta{color:var(--muted);font-size:12px;margin-top:4px;}
+  .card-desc{color:var(--muted);font-size:13px;margin-top:8px;line-height:1.4;}
+  .stamp{font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:4px 8px;border-radius:999px;
+         font-family:Arial,sans-serif;font-weight:bold;border:2px solid;white-space:nowrap;}
+  .stamp.ipo{color:var(--ok);border-color:var(--ok);}
+  .stamp.bado{color:var(--wait);border-color:var(--wait);}
+  .stamp.inakuja{color:var(--soon);border-color:var(--soon);}
+  .card-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .thumb{width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-bottom:10px;}
+  .form-box{background:var(--surface2);border:1px solid var(--rule);border-radius:10px;padding:16px;margin-bottom:20px;}
+  label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;}
+  .msg{text-align:center;font-size:12px;color:var(--wait);margin-top:8px;min-height:16px;}
+  .count{color:var(--muted);font-size:12px;margin-bottom:12px;letter-spacing:1px;}
+  .cat-pill{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--rule);
+            border-radius:999px;padding:8px 14px;margin:4px;font-size:13px;}
+  .cat-pill.disabled{opacity:0.4;}
+  .toggle-mini{cursor:pointer;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--gold-dim);color:var(--gold);}
+  .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:13px;}
+  .logout-bar{text-align:right;padding:0 20px;margin-top:-8px;}
+  .logout-bar button{background:none;border:none;color:var(--muted);font-size:12px;text-decoration:underline;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Admin Dashboard</h1>
+    <div class="sub">Movie Library &mdash; Usimamizi</div>
+  </header>
+
+  <div id="lockScreen" class="lock">
+    <p>Ingia kwa akaunti ya Admin</p>
+    <input type="email" id="loginEmail" placeholder="Barua pepe">
+    <input type="password" id="loginPass" placeholder="Password">
+    <button class="btn" id="loginBtn">Ingia</button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+
+  <div id="app" style="display:none;">
+    <div class="logout-bar"><button id="logoutBtn">Toka &rarr;</button></div>
+    <main>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="movies">Movies</button>
+        <button class="tab-btn" data-tab="products">Bidhaa</button>
+        <button class="tab-btn" data-tab="categories">Category</button>
+        <button class="tab-btn" data-tab="users">Wateja</button>
+      </div>
+
+      <!-- MOVIES TAB -->
+      <div class="section active" id="tab-movies">
+        <div class="form-box">
+          <label>Jina la Movie</label>
+          <input type="text" id="mTitle" placeholder="mfano: Fast X">
+          <label>Category</label>
+          <select id="mCategory"></select>
+          <label>Hali</label>
+          <select id="mStatus">
+            <option value="ipo">Ipo</option>
+            <option value="inakuja">Inakuja</option>
+            <option value="bado">Bado</option>
+          </select>
+          <label>Maelezo (yatakayovutia wateja)</label>
+          <textarea id="mDesc" placeholder="mfano: Filamu ya aksheni yenye mzunguko wa magari..."></textarea>
+          <label>Picha ya Movie</label>
+          <input type="file" id="mImage" accept="image/*">
+          <label>Link ya Trailer (YouTube - Unlisted)</label>
+          <input type="text" id="mTrailer" placeholder="mfano: https://youtube.com/watch?v=ABC123XYZ">
+          <button class="btn" id="mAddBtn">Ongeza Movie</button>
+        </div>
+        <div class="count" id="movieCount"></div>
+        <div id="movieList"></div>
+      </div>
+
+      <!-- PRODUCTS TAB -->
+      <div class="section" id="tab-products">
+        <div class="form-box">
+          <label>Jina la Bidhaa</label>
+          <input type="text" id="pName" placeholder="mfano: Flash 32GB">
+          <label>Bei (TZS)</label>
+          <input type="number" id="pPrice" placeholder="mfano: 15000">
+          <label>Maelezo</label>
+          <textarea id="pDesc" placeholder="Maelezo mafupi ya bidhaa"></textarea>
+          <label>Picha ya Bidhaa</label>
+          <input type="file" id="pImage" accept="image/*">
+          <button class="btn" id="pAddBtn">Ongeza Bidhaa</button>
+        </div>
+        <div class="count" id="productCount"></div>
+        <div id="productList"></div>
+      </div>
+
+      <!-- CATEGORIES TAB -->
+      <div class="section" id="tab-categories">
+        <div class="form-box">
+          <label>Ongeza Category Mpya</label>
+          <input type="text" id="catName" placeholder="mfano: Kids Movies">
+          <button class="btn" id="catAddBtn">Ongeza Category</button>
+        </div>
+        <div id="catList"></div>
+        <p style="color:var(--muted);font-size:12px;margin-top:12px;">
+          Ukifungia (Disable) category, wateja hawataiona kabisa kwenye User App.
+        </p>
+      </div>
+
+      <!-- USERS TAB -->
+      <div class="section" id="tab-users">
+        <div class="count" id="userCount"></div>
+        <div id="userAdminList"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, doc, updateDoc, deleteDoc,
+  onSnapshot, query, orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// ============================================
+// CONFIG - IMEUNGANISHWA MOJA KWA MOJA (hakuna faili nyingine inayohitajika)
+// ============================================
+const firebaseConfig = {
+  apiKey: "AIzaSyAc9-UB8dja2Bf0PYL72wDI3sOC7eL_02o",
+  authDomain: "reelzone-muvies.firebaseapp.com",
+  projectId: "reelzone-muvies",
+  storageBucket: "reelzone-muvies.firebasestorage.app",
+  messagingSenderId: "930079836592",
+  appId: "1:930079836592:web:25ce8aa2d4d464c3522e75"
+};
+const ADMIN_EMAIL = "mycokavishe@gmail.com";
+const CLOUDINARY_CLOUD_NAME = "lr6wveni";
+const CLOUDINARY_UPLOAD_PRESET = "ml_default";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+async function uploadToCloudinary(file) {
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  const res = await fetch(url, { method: 'POST', body: formData });
+  if (!res.ok) throw new Error('Imeshindwa kupakia picha. Angalia mtandao wako.');
+  const data = await res.json();
+  return data.secure_url;
+}
+
+let categories = [];
+
+// ---- AUTH ----
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const msg = document.getElementById('loginMsg');
+  if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    msg.textContent = "Barua pepe hii si ya Admin.";
+    return;
+  }
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch (e) {
+    msg.textContent = "Imeshindikana kuingia: " + e.message;
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+onAuthStateChanged(auth, (user) => {
+  if (user && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initListeners();
+  } else {
+    document.getElementById('lockScreen').style.display = 'block';
+    document.getElementById('app').style.display = 'none';
+  }
+});
+
+// ---- TABS ----
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+let listenersInitialized = false;
+function initListeners() {
+  if (listenersInitialized) return;
+  listenersInitialized = true;
+  listenCategories();
+  listenMovies();
+  listenProducts();
+  listenUsers();
+}
+
+// ---- CATEGORIES ----
+function listenCategories() {
+  const q = query(collection(db, 'categories'), orderBy('name'));
+  onSnapshot(q, (snap) => {
+    categories = [];
+    snap.forEach(d => categories.push({ id: d.id, ...d.data() }));
+    renderCategorySelect();
+    renderCategoryList();
+  });
+}
+
+function renderCategorySelect() {
+  const sel = document.getElementById('mCategory');
+  sel.innerHTML = categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+}
+
+function renderCategoryList() {
+  const list = document.getElementById('catList');
+  if (categories.length === 0) {
+    list.innerHTML = '<div class="empty">Bado hakuna category. Ongeza moja juu.</div>';
+    return;
+  }
+  list.innerHTML = categories.map(c => `
+    <span class="cat-pill ${c.enabled === false ? 'disabled' : ''}">
+      ${escapeHtml(c.name)}
+      <span class="toggle-mini" onclick="toggleCategory('${c.id}', ${c.enabled === false})">
+        ${c.enabled === false ? 'Fungua' : 'Funga'}
+      </span>
+      <span class="toggle-mini" style="border-color:var(--wait);color:var(--wait);" onclick="deleteCategory('${c.id}')">Futa</span>
+    </span>
+  `).join('');
+}
+
+document.getElementById('catAddBtn').addEventListener('click', async () => {
+  const nameEl = document.getElementById('catName');
+  const name = nameEl.value.trim();
+  if (!name) return;
+  await addDoc(collection(db, 'categories'), { name, enabled: true, createdAt: serverTimestamp() });
+  nameEl.value = '';
+});
+
+window.toggleCategory = async (id, enable) => {
+  await updateDoc(doc(db, 'categories', id), { enabled: enable });
+};
+
+window.deleteCategory = async (id) => {
+  if (!confirm('Futa category hii? Movie zilizopo ndani yake hazitafutwa lakini hazitaonekana.')) return;
+  await deleteDoc(doc(db, 'categories', id));
+};
+
+// ---- MOVIES ----
+function listenMovies() {
+  const q = query(collection(db, 'movies'), orderBy('createdAt', 'desc'));
+  onSnapshot(q, (snap) => {
+    const movies = [];
+    snap.forEach(d => movies.push({ id: d.id, ...d.data() }));
+    renderMovies(movies);
+  });
+}
+
+function catName(id) {
+  const c = categories.find(x => x.id === id);
+  return c ? c.name : 'Bila Category';
+}
+
+function statusLabel(s) {
+  if (s === 'ipo') return { text: 'IPO', cls: 'ipo' };
+  if (s === 'bado') return { text: 'BADO', cls: 'bado' };
+  return { text: 'INAKUJA', cls: 'inakuja' };
+}
+
+function renderMovies(movies) {
+  document.getElementById('movieCount').textContent = movies.length + ' MOVIE KWENYE MFUMO';
+  const list = document.getElementById('movieList');
+  if (movies.length === 0) {
+    list.innerHTML = '<div class="empty">Bado hujaongeza movie yoyote.</div>';
+    return;
+  }
+  list.innerHTML = movies.map(m => {
+    const s = statusLabel(m.status);
+    return `<div class="card">
+      ${m.imageUrl ? `<img class="thumb" src="${m.imageUrl}">` : ''}
+      <div class="card-top">
+        <div>
+          <div class="card-title">${escapeHtml(m.title)}</div>
+          <div class="card-meta">${escapeHtml(catName(m.category))} &middot; ${m.likes || 0} likes ${m.trailerId ? '&middot; \ud83c\udfa5 Trailer ipo' : ''}</div>
+        </div>
+        <span class="stamp ${s.cls}">${s.text}</span>
+      </div>
+      ${m.description ? `<div class="card-desc">${escapeHtml(m.description)}</div>` : ''}
+      <div class="card-actions">
+        <select class="btn small secondary" style="width:auto;" onchange="updateMovieStatus('${m.id}', this.value)">
+          <option value="ipo" ${m.status === 'ipo' ? 'selected' : ''}>Ipo</option>
+          <option value="inakuja" ${m.status === 'inakuja' ? 'selected' : ''}>Inakuja</option>
+          <option value="bado" ${m.status === 'bado' ? 'selected' : ''}>Bado</option>
+        </select>
+        <button class="btn small danger" onclick="deleteMovie('${m.id}')">Futa</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('mAddBtn').addEventListener('click', async () => {
+  const title = document.getElementById('mTitle').value.trim();
+  const category = document.getElementById('mCategory').value;
+  const status = document.getElementById('mStatus').value;
+  const description = document.getElementById('mDesc').value.trim();
+  const imageFile = document.getElementById('mImage').files[0];
+  const trailerInput = document.getElementById('mTrailer').value.trim();
+  const trailerId = extractYouTubeId(trailerInput);
+  if (!title) return alert('Weka jina la movie kwanza.');
+  if (trailerInput && !trailerId) {
+    return alert('Link ya YouTube haieleweki. Hakikisha umebandika link kamili kutoka YouTube.');
+  }
+
+  let imageUrl = '';
+  if (imageFile) {
+    try {
+      imageUrl = await uploadToCloudinary(imageFile);
+    } catch (e) {
+      return alert(e.message);
+    }
+  }
+
+  await addDoc(collection(db, 'movies'), {
+    title, category, status, description, imageUrl, trailerId: trailerId || '',
+    likes: 0, createdAt: serverTimestamp()
+  });
+
+  document.getElementById('mTitle').value = '';
+  document.getElementById('mDesc').value = '';
+  document.getElementById('mImage').value = '';
+  document.getElementById('mTrailer').value = '';
+});
+
+function extractYouTubeId(url) {
+  if (!url) return '';
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/
+  ];
+  for (const p of patterns) {
+    const match = url.match(p);
+    if (match) return match[1];
+  }
+  return '';
+}
+
+window.updateMovieStatus = async (id, status) => {
+  await updateDoc(doc(db, 'movies', id), { status });
+};
+
+window.deleteMovie = async (id) => {
+  if (!confirm('Futa movie hii?')) return;
+  await deleteDoc(doc(db, 'movies', id));
+};
+
+// ---- PRODUCTS ----
+function listenProducts() {
+  const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+  onSnapshot(q, (snap) => {
+    const products = [];
+    snap.forEach(d => products.push({ id: d.id, ...d.data() }));
+    renderProducts(products);
+  });
+}
+
+function renderProducts(products) {
+  document.getElementById('productCount').textContent = products.length + ' BIDHAA KWENYE MFUMO';
+  const list = document.getElementById('productList');
+  if (products.length === 0) {
+    list.innerHTML = '<div class="empty">Bado hujaongeza bidhaa yoyote.</div>';
+    return;
+  }
+  list.innerHTML = products.map(p => `
+    <div class="card">
+      ${p.imageUrl ? `<img class="thumb" src="${p.imageUrl}">` : ''}
+      <div class="card-top">
+        <div>
+          <div class="card-title">${escapeHtml(p.name)}</div>
+          <div class="card-meta">TZS ${Number(p.price).toLocaleString()}</div>
+        </div>
+      </div>
+      ${p.description ? `<div class="card-desc">${escapeHtml(p.description)}</div>` : ''}
+      <div class="card-actions">
+        <button class="btn small danger" onclick="deleteProduct('${p.id}')">Futa</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('pAddBtn').addEventListener('click', async () => {
+  const name = document.getElementById('pName').value.trim();
+  const price = document.getElementById('pPrice').value;
+  const description = document.getElementById('pDesc').value.trim();
+  const imageFile = document.getElementById('pImage').files[0];
+  if (!name || !price) return alert('Jaza jina na bei.');
+
+  let imageUrl = '';
+  if (imageFile) {
+    try {
+      imageUrl = await uploadToCloudinary(imageFile);
+    } catch (e) {
+      return alert(e.message);
+    }
+  }
+
+  await addDoc(collection(db, 'products'), {
+    name, price: Number(price), description, imageUrl, createdAt: serverTimestamp()
+  });
+
+  document.getElementById('pName').value = '';
+  document.getElementById('pPrice').value = '';
+  document.getElementById('pDesc').value = '';
+  document.getElementById('pImage').value = '';
+});
+
+window.deleteProduct = async (id) => {
+  if (!confirm('Futa bidhaa hii?')) return;
+  await deleteDoc(doc(db, 'products', id));
+};
+
+// ---- USERS (ban/unban) ----
+function listenUsers() {
+  const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+  onSnapshot(q, (snap) => {
+    const users = [];
+    snap.forEach(d => users.push({ id: d.id, ...d.data() }));
+    renderUsers(users);
+  });
+}
+
+function renderUsers(users) {
+  document.getElementById('userCount').textContent = users.length + ' WATEJA WALIOJISAJILI';
+  const list = document.getElementById('userAdminList');
+  if (users.length === 0) {
+    list.innerHTML = '<div class="empty">Bado hakuna mteja aliyejisajili.</div>';
+    return;
+  }
+  list.innerHTML = users.map(u => `
+    <div class="card">
+      <div class="card-top">
+        <div>
+          <div class="card-title">${escapeHtml(u.name || 'Bila jina')}</div>
+          <div class="card-meta">${escapeHtml(u.email || '')}</div>
+        </div>
+        <span class="stamp ${u.banned ? 'bado' : 'ipo'}">${u.banned ? 'AMEFUNGWA' : 'AKTIVU'}</span>
+      </div>
+      <div class="card-actions">
+        <button class="btn small ${u.banned ? '' : 'danger'}" onclick="toggleBan('${u.id}', ${!u.banned})">
+          ${u.banned ? 'Mfungue' : 'Mfunge'}
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.toggleBan = async (id, ban) => {
+  await updateDoc(doc(db, 'users', id), { banned: ban });
+};
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+</script>
+</body>
+</html>
